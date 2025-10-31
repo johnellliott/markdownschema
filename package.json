@@ -3,18 +3,18 @@
   "version": "0.1.0",
   "description": "Validate Markdown using a Markdown-defined schema.",
   "type": "module",
-  "main": "src/markdownschema.js",
-  "module": "src/markdownschema.js",
+  "main": "src/markdownschema-validator.js",
+  "module": "src/markdownschema-validator.js",
   "types": "src/index.d.ts",
   "keywords": ["markdown", "schema", "validation"],
-  "author": "John Elliott (Cognaire)",
+  "author": "John Elliott",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnelliott-cognaire/markdownschema.git"
+    "url": "git+https://github.com/johnellliott/markdownschema.git"
   },
   "bugs": {
-    "url": "https://github.com/johnelliott-cognaire/markdownschema/issues"
+    "url": "https://github.com/johnellliott/markdownschema/issues"
   },
-  "homepage": "https://github.com/johnelliott-cognaire/markdownschema#readme"
+  "homepage": "https://github.com/johnellliott/markdownschema#readme"
 }
