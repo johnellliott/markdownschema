@@ -289,6 +289,19 @@ function parseRuleValue(v) {
 // ---------------------------------------------------------------------------
 // Validation core
 // ---------------------------------------------------------------------------
+/**
+ * Format level description with optional label
+ * @param {number} level - Heading level
+ * @param {string|null} label - Optional human-friendly label
+ * @returns {string} Formatted level description
+ */
+function formatLevel(level, label) {
+  if (label) {
+    return `level ${level} (${label})`;
+  }
+  return `level ${level}`;
+}
+
 function compareSiblings(schemaSibs, docSibs, level, docMd, errors, pathStack) {
   const wildcard = schemaSibs.find(s => s.matcher.type === 'wildcard');
   const seq = schemaSibs.filter(s => s !== wildcard);
@@ -305,12 +318,21 @@ function compareSiblings(schemaSibs, docSibs, level, docMd, errors, pathStack) {
     } else if (wildcard) {
       extras.push(d);
     } else {
+      // Try to determine the expected schema node for better error message
+      const diagnostic = headingDiagnostics(seq, d.text, i);
+      const expectedNode = diagnostic.node;
+      const levelDesc = formatLevel(level, expectedNode?.label);
+
       pushError(errors, {
         code: 'unexpected-heading',
-        message: `Unexpected heading "${headingLabel(d)}" at level ${level}`,
+        message: `Unexpected heading "${headingLabel(d)}" at ${levelDesc}` +
+          (diagnostic.hints.length ? ' ' + diagnostic.hints.join(' ') : ''),
         path: pathStack.concat(headingLabel(d)).join(' > '),
         line: d.pos?.line, column: d.pos?.column,
-        expected: seq.map(s => matchDesc(s.matcher))
+        expected: seq.map(s => matchDesc(s.matcher)),
+        actual: d.rawText || d.text,
+        schema_line: expectedNode?.pos?.line,
+        hints: diagnostic.hints
       });
 
       const hint = diagnoseDateRangeToken(d.rawText || d.text);
@@ -426,6 +448,40 @@ function matchDesc(m) {
   return '(unknown)';
 }
 
+function headingDiagnostics(seq, text, start) {
+  // Diagnostic checks use fresh regexes so global/sticky patterns cannot alter
+  // matcher state or affect subsequent validation.
+  const accepts = (node, value) => node.matcher.type === 'exact'
+    ? value === node.matcher.value
+    : node.matcher.type === 'regex' &&
+      new RegExp(node.matcher.pattern.source, node.matcher.pattern.flags).test(value);
+  const earlier = seq.slice(0, start).filter(node => accepts(node, text));
+  if (earlier.length) {
+    return { node: earlier[0], hints: ['Heading matches an earlier schema rule but appears out of order.'] };
+  }
+  const aliases = {
+    jan: 'January', feb: 'February', mar: 'March', apr: 'April',
+    may: 'May', jun: 'June', jul: 'July', aug: 'August', sep: 'September',
+    sept: 'September', oct: 'October', nov: 'November', dec: 'December'
+  };
+  const date = /\(([^()\n]*\d{4}[^()\n]*)\)\s*$/.exec(text);
+  if (date) {
+    const hints = [];
+    const candidateDate = date[1].replace(/\b([A-Za-z]{3,4}\.?)(\s+)(?=\d{4}\b)/g, (whole, literal, space) => {
+      const replacement = aliases[literal.replace(/\.$/, '').toLowerCase()];
+      if (!replacement || literal === replacement) return whole;
+      hints.push(`Month token "${literal}" is not accepted here; use "${replacement}".`);
+      return replacement + space;
+    });
+    const offset = date.index + 1;
+    const candidate = text.slice(0, offset) + candidateDate + text.slice(offset + date[1].length);
+    const matches = seq.slice(start).filter(node => node.matcher.type === 'regex' && accepts(node, candidate));
+    if (candidate !== text && matches.length === 1) {
+      return { node: matches[0], hints: [...new Set(hints)] };
+    }
+  }
+  return { node: seq[start], hints: [] };
+}
 function diagnoseDateRangeToken(s) {
   // flags the two most common mistakes we care about
   if (/\(\s*\d{4}\s*\/\s*\d{4}\s*\)\s*$/.test(s)) return 'Found "/" between years; expected "-" or "–".';
@@ -608,7 +664,9 @@ function pushError(arr, e) {
     line: e.line,
     column: e.column,
     expected: e.expected,
-    actual: e.actual
+    actual: e.actual,
+    ...(e.schema_line !== undefined ? { schema_line: e.schema_line } : {}),
+    ...(e.hints !== undefined ? { hints: e.hints } : {})
   });
 }
 

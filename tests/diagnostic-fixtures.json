@@ -1,0 +1,83 @@
+[
+  {
+    "name": "valid",
+    "schema": "# Document\n## \"Experience\"\n### /^.+ at .+ \\((?:January|September|October) \\d{4} - (?:January|September|October) \\d{4}\\)$/ { minOccurs: 0, content: any }",
+    "document": "# Document\n## Experience\n### Analyst at Example (October 2019 - September 2023)",
+    "ok": true,
+    "hints": []
+  },
+  {
+    "name": "four_letter_month",
+    "schema": "# Document\n## \"Experience\"\n### /^.+ at .+ \\((?:January|September|October) \\d{4} - (?:January|September|October) \\d{4}\\)$/ { minOccurs: 0, content: any }",
+    "document": "# Document\n## Experience\n### Analyst at Example (October 2019 - Sept 2023)",
+    "ok": false,
+    "hints": [
+      "Month token \"Sept\" is not accepted here; use \"September\"."
+    ]
+  },
+  {
+    "name": "two_months",
+    "schema": "# Document\n## \"Experience\"\n### /^.+ at .+ \\((?:January|September|October) \\d{4} - (?:January|September|October) \\d{4}\\)$/ { minOccurs: 0, content: any }",
+    "document": "# Document\n## Experience\n### Analyst at Example (Oct. 2019 - Sept 2023)",
+    "ok": false,
+    "hints": [
+      "Month token \"Oct.\" is not accepted here; use \"October\".",
+      "Month token \"Sept\" is not accepted here; use \"September\"."
+    ]
+  },
+  {
+    "name": "other_invalid_field_abstains",
+    "schema": "# Document\n## \"Experience\"\n### /^.+ at .+ \\((?:January|September|October) \\d{4} - (?:January|September|October) \\d{4}\\)$/ { minOccurs: 0, content: any }",
+    "document": "# Document\n## Experience\n### Analyst without employer (Oct 2019 - Sept 2023)",
+    "ok": false,
+    "hints": []
+  },
+  {
+    "name": "name_is_not_month",
+    "schema": "# Document\n## \"Experience\"\n### /^.+ at .+ \\((?:January|September|October) \\d{4} - (?:January|September|October) \\d{4}\\)$/ { minOccurs: 0, content: any }",
+    "document": "# Document\n## Experience\n### Sept Analyst at Jan Office (October 2019 - September 2023)",
+    "ok": true,
+    "hints": []
+  },
+  {
+    "name": "multiple_failures",
+    "schema": "# Document\n## \"Experience\"\n### /^.+ at .+ \\((?:January|September|October) \\d{4} - (?:January|September|October) \\d{4}\\)$/ { minOccurs: 0, content: any }",
+    "document": "# Document\n## Experience\n### Analyst at Example (October 2019 - Sept 2023)\n### Manager at Other (Jan 2019 - October 2023)",
+    "ok": false,
+    "hints": [
+      "Month token \"Sept\" is not accepted here; use \"September\".",
+      "Month token \"Jan\" is not accepted here; use \"January\"."
+    ],
+    "unexpected_count": 2
+  },
+  {
+    "name": "out_of_order",
+    "schema": "# Document\n## \"First\"\n## \"Second\"",
+    "document": "# Document\n## Second\n## First",
+    "ok": false,
+    "hints": [
+      "Heading matches an earlier schema rule but appears out of order."
+    ]
+  },
+  {
+    "name": "unknown_heading",
+    "schema": "# Document\n## \"First\" { minOccurs: 0 }",
+    "document": "# Document\n## Surprise",
+    "ok": false,
+    "hints": []
+  },
+  {
+    "name": "abbreviation_permitted",
+    "schema": "# Document\n## \"Experience\"\n### /^.+ \\(Sept \\d{4}\\)$/ { minOccurs: 0 }",
+    "document": "# Document\n## Experience\n### Analyst (Sept 2023)",
+    "ok": true,
+    "hints": []
+  },
+  {
+    "name": "custom_non_date_schema",
+    "schema": "# Document\n## /^Ticket \\(ABC \\d{4}\\)$/",
+    "document": "# Document\n## Ticket (Sept 2023)",
+    "ok": false,
+    "hints": []
+  }
+]
